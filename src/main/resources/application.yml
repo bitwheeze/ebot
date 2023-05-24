@@ -1,0 +1,55 @@
+golos:
+  #api: https://api-golos.blckchnd.com
+  api: https://apibeta.golos.today
+  chain_id: 782a3039b478c839e4cb0c941ff4eaeb7df40bdd68bd441afd444b9da763de12
+spring:
+  data:
+    rest:
+      max-page-size: 50
+    web:
+      pageable:
+        max-page-size: 50
+  datasource:
+    driverClassName: org.h2.Driver
+    password: test
+    url: jdbc:h2:./ebot.test.db;AUTO_SERVER=TRUE
+    username: test
+  jackson:
+    serialization:
+      write_dates_as_timestamps: false
+  jpa:
+    #generate-ddl: true
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+      search:
+        default:
+          indexmanager: elasticsearch
+          elasticsearch:
+            host: localhost:9200
+            index_schema_management_strategy: drop-and-create
+            required_index_status: yellow
+  codec:
+    max-in-memory-size: 30MB
+
+ebot:
+  golos-alias-cmc: GLS
+  cron: 0 * * * * *
+  pairs:
+    - account: bitwheeze
+      key: 5K67PNheLkmxkgJ5UjvR8Nyt3GVPoLEN1dMZjFuNETzrNyMecPG
+      base: GOLOS
+      quote: YMBNB
+      relative-orders:
+        enabled: true
+        spread: 4.33
+        orders-count: 3
+        max-order: 1
+        max-order-in-percent: true
+        mode: Balance
+
+cmc:
+  cron: 0 */5 * * * *
+  api-key: b54bcf4d-1bca-4e8e-9a24-22ff2c3d462c
+  api-url: https://sandbox-api.coinmarketcap.com/v1/cryptocurrency/listings/latest
+  read-count: 5000
