@@ -10,12 +10,10 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
-public class CmcPriceEntity {
+public class PriceEntity {
 
     @Id
-    long id;
-    String symbol;
-    String name;
+    String asset;
     @Column(precision = 40, scale = 20)
     BigDecimal price;
     LocalDateTime lastUpdated;

@@ -33,23 +33,29 @@ spring:
     max-in-memory-size: 30MB
 
 ebot:
-  golos-alias-cmc: GLS
   cron: 0 * * * * *
   pairs:
-    - account: bitwheeze
+    - account: lex
       key: 5K67PNheLkmxkgJ5UjvR8Nyt3GVPoLEN1dMZjFuNETzrNyMecPG
       base: GOLOS
-      quote: YMBNB
+      quote: GBG
+      exiration: 14
       relative-orders:
         enabled: true
+        start-order-amount: 200
         spread: 4.33
-        orders-count: 3
-        max-order: 1
-        max-order-in-percent: true
+        orders-count: 6
         mode: Balance
+        order-volume-change-percent: 110.0
 
 cmc:
-  cron: 0 */5 * * * *
+  cron: 0 0 */6 * * *
   api-key: b54bcf4d-1bca-4e8e-9a24-22ff2c3d462c
   api-url: https://sandbox-api.coinmarketcap.com/v1/cryptocurrency/listings/latest
   read-count: 5000
+  # max age of price info in minutes
+  max-age-minutes: 1440
+  map:
+    BNB: YMBNB
+    GLS: GOLOS
+    HIVE: YMHIVE

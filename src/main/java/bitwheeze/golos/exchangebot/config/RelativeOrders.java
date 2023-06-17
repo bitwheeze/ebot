@@ -11,13 +11,20 @@ public class RelativeOrders {
     boolean enabled;
 
     Mode mode;
-
     BigDecimal spread;
     int ordersCount;
-    BigDecimal maxOrder;
+    BigDecimal startOrderAmount;
     boolean maxOrderInPercent = false;
+    BigDecimal orderPriceIncreasePercent = BigDecimal.valueOf(4.0);
+    BigDecimal orderVolumeChangePercent = BigDecimal.valueOf(100.0);
 
-    public static enum Mode {
+    BigDecimal fixedPrice = BigDecimal.ZERO;
+
+    public enum Mode {
         Sell, Buy, Balance;
+    }
+
+    public enum PriceSource {
+        Cmc, Feed, Fixed;
     }
 }

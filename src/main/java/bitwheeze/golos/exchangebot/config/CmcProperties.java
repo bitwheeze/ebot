@@ -15,5 +15,6 @@ public class CmcProperties {
 
     int readCount = 5000;
 
-    String baseAsset = "ETH";
+    String baseAsset = "GLS";
+
 }

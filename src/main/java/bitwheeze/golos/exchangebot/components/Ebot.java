@@ -1,7 +1,6 @@
 package bitwheeze.golos.exchangebot.components;
 
 import bitwheeze.golos.exchangebot.config.EbotProperties;
-import bitwheeze.golos.exchangebot.config.RelativeOrders;
 import bitwheeze.golos.exchangebot.config.TradingPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,8 +26,10 @@ public class Ebot {
     }
 
     private Strategy validatePair(TradingPair pair) {
-
-        return Strategy.Empty;
+        if(!RelativeOrdersStrategy.validate(pair.getRelativeOrders())) {
+            return Strategy.Empty;
+        }
+        return Strategy.RelativeOrders;
     }
 
     @Scheduled(cron = "#{@ebotProperties.cron}")

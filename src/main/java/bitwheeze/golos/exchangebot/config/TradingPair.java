@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 
@@ -22,5 +21,10 @@ public class TradingPair {
     String base;
     String quote;
 
+    BigDecimal reserve = BigDecimal.valueOf(10.00);
+
     RelativeOrders relativeOrders;
+
+    /** Expiration in minutes */
+    int expiration = 15;
 }
