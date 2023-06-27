@@ -11,9 +11,9 @@ spring:
         max-page-size: 50
   datasource:
     driverClassName: org.h2.Driver
-    password: test
-    url: jdbc:h2:./ebot.test.db;AUTO_SERVER=TRUE
-    username: test
+    username: ebot
+    password: ebot
+    url: jdbc:h2:./ebot.db;AUTO_SERVER=TRUE
   jackson:
     serialization:
       write_dates_as_timestamps: false
@@ -33,20 +33,7 @@ spring:
     max-in-memory-size: 30MB
 
 ebot:
-  cron: 0 * * * * *
-  pairs:
-    - account: lex
-      key: 5K67PNheLkmxkgJ5UjvR8Nyt3GVPoLEN1dMZjFuNETzrNyMecPG
-      base: GOLOS
-      quote: GBG
-      exiration: 14
-      relative-orders:
-        enabled: true
-        start-order-amount: 200
-        spread: 4.33
-        orders-count: 6
-        mode: Balance
-        order-volume-change-percent: 110.0
+  cron: 0 */5 * * * *
 
 cmc:
   cron: 0 0 */6 * * *

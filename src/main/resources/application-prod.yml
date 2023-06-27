@@ -1,0 +1,7 @@
+spring:
+  config:
+    import: optional:file:./ebotconfig.yml
+  datasource:
+    url: jdbc:h2:/db/ebot.db;AUTO_SERVER=TRUE
+
+

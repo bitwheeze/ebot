@@ -2,6 +2,7 @@ package bitwheeze.golos.exchangebot.services;
 
 import bitwheeze.golos.exchangebot.config.CmcProperties;
 import bitwheeze.golos.exchangebot.events.error.CmcErrorEvent;
+import bitwheeze.golos.exchangebot.events.info.CmcLoadEvent;
 import bitwheeze.golos.exchangebot.model.cmc.CmcListingResponse;
 import bitwheeze.golos.exchangebot.model.cmc.ListingConvertData;
 import bitwheeze.golos.exchangebot.model.cmc.Quote;
@@ -68,6 +69,7 @@ public class CmcService {
             lastStart = processRepsponse(cmcResponseMono.block(), lastStart);
         }
 
+        publisher.publishEvent(new CmcLoadEvent());
     }
 
 

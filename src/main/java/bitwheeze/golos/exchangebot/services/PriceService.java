@@ -4,6 +4,7 @@ package bitwheeze.golos.exchangebot.services;
 import bitwheeze.golos.exchangebot.config.PricesProperties;
 import bitwheeze.golos.exchangebot.events.error.CmcMissingPriceInfo;
 import bitwheeze.golos.exchangebot.events.error.CmcOutdatedPriceInfo;
+import bitwheeze.golos.exchangebot.events.info.ChangedPriceEvent;
 import bitwheeze.golos.exchangebot.persistence.entities.PriceEntity;
 import bitwheeze.golos.exchangebot.persistence.repositories.PriceRepository;
 import jakarta.transaction.Transactional;
@@ -35,7 +36,9 @@ public class PriceService {
             entity.setAsset(asset);
             return entity;
         });
-
+        if(priceEntity.getPrice() != null && !priceEntity.getPrice().equals(price)) {
+            publisher.publishEvent(new ChangedPriceEvent(asset, pricesProps.getBaseAsset(), price));
+        }
         priceEntity.setPrice(price);
         priceEntity.setLastUpdated(lastUpdated);
         priceRepo.save(priceEntity);

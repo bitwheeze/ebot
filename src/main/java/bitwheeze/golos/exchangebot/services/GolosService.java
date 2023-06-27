@@ -3,6 +3,7 @@ package bitwheeze.golos.exchangebot.services;
 import bitwheeze.golos.exchangebot.config.EbotProperties;
 import bitwheeze.golos.exchangebot.config.PricesProperties;
 import bitwheeze.golos.exchangebot.config.TradingPair;
+import bitwheeze.golos.exchangebot.events.info.NewOrderEvent;
 import bitwheeze.golos.exchangebot.model.ebot.Order;
 import bitwheeze.golos.goloslib.*;
 import bitwheeze.golos.goloslib.model.Asset;
@@ -13,6 +14,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -34,12 +36,14 @@ public class GolosService {
     private final TransactionFactory transactionFactory;
     private final PricesProperties pricesProperties;
     private final PriceService priceService;
+    private final ApplicationEventPublisher publisher;
     private long orderId = new Date().getTime();
 
     public void createOrders(TradingPair pair, List<Order> orderList) {
         final var builder = transactionFactory.getBuidler();
         List<Operation> ops = new ArrayList<>();
         orderList.stream()
+                .peek(order -> publisher.publishEvent(new NewOrderEvent(order)))
                 .map(order -> {
                     var orderCreate = buildLimitOrderCreate(order, pair.getAccount());
                     return orderCreate;

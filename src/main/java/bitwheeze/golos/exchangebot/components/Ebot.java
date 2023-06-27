@@ -2,6 +2,7 @@ package bitwheeze.golos.exchangebot.components;
 
 import bitwheeze.golos.exchangebot.config.EbotProperties;
 import bitwheeze.golos.exchangebot.config.TradingPair;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -35,6 +36,12 @@ public class Ebot {
     @Scheduled(cron = "#{@ebotProperties.cron}")
     public void cronJob() {
         log.info("ebot cron job started");
+        processTradingPairs();
+    }
+
+    @PostConstruct
+    public void init() {
+        log.info("process pairs on start");
         processTradingPairs();
     }
 }

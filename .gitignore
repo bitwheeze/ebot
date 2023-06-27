@@ -20,6 +20,8 @@ bin/
 ### IntelliJ IDEA ###
 .idea
 *.iws
+*.db
+*.log
 *.iml
 *.ipr
 out/
