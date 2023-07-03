@@ -8,7 +8,7 @@ RUN ./gradlew build
 
 FROM openjdk:19-oracle
 
-COPY --from=0 /home/gradle/src/build/libs/exchangebot-*.jar /app.jar
+COPY --from=0 /home/gradle/src/build/libs/exchangebot.jar /app.jar
 
 RUN mkdir /db/
 

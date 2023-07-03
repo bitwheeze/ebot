@@ -50,26 +50,30 @@ public class CmcService {
     public void queryListingConvert() {
         log.info("Starting NON-BLOCKING Controller!");
 
-        long lastStart = 1;
-        while (lastStart > 0) {
-            log.info("get proces starting at {} for base coin {}", lastStart, cmcProps.getBaseAsset());
-            final String url = getSlowServiceUri(lastStart);
-            log.info("url = {}", url);
-            Mono<CmcListingResponse> cmcResponseMono = webClient
-                    .get()
-                    .uri(url)
-                    .header("X-CMC_PRO_API_KEY", cmcProps.getApiKey())
-                    .accept(MediaType.APPLICATION_JSON)
-                    .attribute("start", String.valueOf(lastStart))
-                    .attribute("limit", String.valueOf(cmcProps.getReadCount()))
-                    .attribute("convert", cmcProps.getBaseAsset())
-                    .retrieve()
-                    .bodyToMono(CmcListingResponse.class);
+        try {
+            long lastStart = 1;
+            while (lastStart > 0) {
+                log.info("get proces starting at {} for base coin {}", lastStart, cmcProps.getBaseAsset());
+                final String url = getSlowServiceUri(lastStart);
+                log.info("url = {}", url);
+                Mono<CmcListingResponse> cmcResponseMono = webClient
+                        .get()
+                        .uri(url)
+                        .header("X-CMC_PRO_API_KEY", cmcProps.getApiKey())
+                        .accept(MediaType.APPLICATION_JSON)
+                        .attribute("start", String.valueOf(lastStart))
+                        .attribute("limit", String.valueOf(cmcProps.getReadCount()))
+                        .attribute("convert", cmcProps.getBaseAsset())
+                        .retrieve()
+                        .bodyToMono(CmcListingResponse.class);
 
-            lastStart = processRepsponse(cmcResponseMono.block(), lastStart);
+                lastStart = processRepsponse(cmcResponseMono.block(), lastStart);
+                publisher.publishEvent(new CmcLoadEvent());
+            }
+        }catch (Exception ex) {
+              publisher.publishEvent(new CmcErrorEvent(null));
         }
 
-        publisher.publishEvent(new CmcLoadEvent());
     }
 
 

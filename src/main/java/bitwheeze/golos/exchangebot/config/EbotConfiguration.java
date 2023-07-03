@@ -41,6 +41,7 @@ public class EbotConfiguration {
                 clientRequest
                         .headers()
                         .forEach((name, values) -> values.forEach(value -> sb.append(name).append("\n")/* append header key/value */));
+                log.info(sb.toString());
                 log.info(clientRequest.body().toString());
             }
             return Mono.just(clientRequest);

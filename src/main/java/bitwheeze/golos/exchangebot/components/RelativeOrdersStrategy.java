@@ -97,6 +97,10 @@ public class RelativeOrdersStrategy {
             log.info("\tavaillableAmount in {} = {}", base, availableAmount);
             log.info("\torderPrice in {} = {}", base, orderPrice);
 
+            if(availableAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                break;
+            }
+
             var minToReceive = orderAmount.multiply(orderPrice);
             log.info("\tmin to receive {}", minToReceive);
             Order order = createOrder(base, quote, orderAmount, minToReceive, pair.getExpiration());
@@ -160,7 +164,7 @@ public class RelativeOrdersStrategy {
 
         log.info("asset amount in {} = {}", asset,availableAmount);
 
-        var reserve = availableAmount.multiply(pair.getReserve()).divide(BigDecimal.valueOf(100.00));
+        var reserve = availableAmount.multiply(pair.getReserve()).divide(BigDecimal.valueOf(100.00), RoundingMode.HALF_DOWN);
         availableAmount = availableAmount.subtract(reserve);
 
         log.info("available amount in {} = {}", asset,availableAmount);

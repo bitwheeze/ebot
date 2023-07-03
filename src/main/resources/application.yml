@@ -42,7 +42,4 @@ cmc:
   read-count: 5000
   # max age of price info in minutes
   max-age-minutes: 1440
-  map:
-    BNB: YMBNB
-    GLS: GOLOS
-    HIVE: YMHIVE
+

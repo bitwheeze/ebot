@@ -3,6 +3,7 @@ package bitwheeze.golos.exchangebot.services;
 import bitwheeze.golos.exchangebot.config.EbotProperties;
 import bitwheeze.golos.exchangebot.config.PricesProperties;
 import bitwheeze.golos.exchangebot.config.TradingPair;
+import bitwheeze.golos.exchangebot.events.info.FillOrderEvent;
 import bitwheeze.golos.exchangebot.events.info.NewOrderEvent;
 import bitwheeze.golos.exchangebot.model.ebot.Order;
 import bitwheeze.golos.goloslib.*;
@@ -10,6 +11,7 @@ import bitwheeze.golos.goloslib.model.Asset;
 import bitwheeze.golos.goloslib.model.op.LimitOrderCancel;
 import bitwheeze.golos.goloslib.model.op.LimitOrderCreate;
 import bitwheeze.golos.goloslib.model.op.Operation;
+import bitwheeze.golos.goloslib.model.op.virtual.FillOrder;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,12 +34,15 @@ public class GolosService {
     private final NetworkBroadcastApi netApi;
     private final MarketHistoryApi api;
     private final WitnessApi witnessApi;
+    private final EventApi eventApi;
     private final EbotProperties ebotProps;
     private final TransactionFactory transactionFactory;
     private final PricesProperties pricesProperties;
     private final PriceService priceService;
     private final ApplicationEventPublisher publisher;
     private long orderId = new Date().getTime();
+
+    private long currentBlock = 0;
 
     public void createOrders(TradingPair pair, List<Order> orderList) {
         final var builder = transactionFactory.getBuidler();
@@ -55,6 +60,12 @@ public class GolosService {
         ops.forEach(order -> builder.add(order));
         var tr = builder.buildAndSign(new String [] {pair.getKey()});
         netApi.broadcastTransaction(tr).block().orElseThrow();
+        try {
+            //wait till transaction is accepted
+            Thread.sleep(9000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private LimitOrderCreate buildLimitOrderCreate(Order order, String account) {
@@ -76,6 +87,11 @@ public class GolosService {
                                 .asset(order.getAssetToSell())
                                 .value(order.getAmountToSell().setScale(defAssetSell.get().getPrecision(), RoundingMode.DOWN))
                                 .build();
+
+        if(amountToSell.getValue().compareTo(BigDecimal.ZERO) <= 0) {
+            log.warn("zerror amount to sell! {}", amountToSell);
+            return null;
+        }
 
         var amountToReceive = Asset.builder()
                 .asset(order.getAssetToReceive())
@@ -109,16 +125,22 @@ public class GolosService {
     @PostConstruct
     public void init() {
         retrieveGlsPrice();
+        initScanner();
     }
 
+    private void initScanner() {
+        var props = dbApi.getDynamicGlobalProperties().block().orElseThrow();
+        this.currentBlock = props.getHeadBlockNumber();
+    }
 
 
     @Scheduled(cron = "#{@ebotGolosProperties.feedCron}")
     public void retrieveGlsPrice() {
+        log.info("retrieve current GLS/GOLOS feed");
         var medianPrice = witnessApi.getGetCurrentMedianHistoryPrice().block().orElseThrow();
         var base = medianPrice.getBase().getValue();
         var quote = medianPrice.getQuote().getValue();
-        if(medianPrice.getBase().equals(pricesProperties.getBaseAsset())) {
+        if(medianPrice.getBase().getAsset().equals(pricesProperties.getBaseAsset())) {
             base = quote;
             quote = medianPrice.getBase().getValue();
         }
@@ -177,5 +199,19 @@ public class GolosService {
             return Optional.empty();
         }
         return Optional.of(assetsList.get(0));
+    }
+
+    @Scheduled(fixedDelay = 9000)
+    public void scan() {
+        var props = dbApi.getDynamicGlobalProperties().block().orElseThrow();
+        while(this.currentBlock++ < props.getHeadBlockNumber()) {
+            var eventList = eventApi.getEventsInBlock(this.currentBlock, true).block().orElseThrow();
+            for(var event : eventList) {
+                var op = event.getOp().getOp();
+                if(op instanceof FillOrder fillOrder) {
+                    publisher.publishEvent(new FillOrderEvent(fillOrder));
+                }
+            }
+        }
     }
 }

@@ -1,7 +1,9 @@
 package bitwheeze.golos.exchangebot.services;
 
+import bitwheeze.golos.exchangebot.components.Ebot;
 import bitwheeze.golos.exchangebot.config.TelegramProperties;
 import bitwheeze.golos.exchangebot.events.EbotEvent;
+import bitwheeze.golos.exchangebot.events.info.ChangedPriceEvent;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -17,18 +19,32 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 public class TelegramService extends TelegramLongPollingBot {
 
     private final TelegramProperties props;
+    private final Ebot ebot;
 
     @SneakyThrows
-    public TelegramService(TelegramProperties props, TelegramBotsApi botsApi) {
+    public TelegramService(TelegramProperties props, TelegramBotsApi botsApi, Ebot ebot) {
         super(new DefaultBotOptions(), props.getBotToken());
         this.props = props;
+        this.ebot = ebot;
         botsApi.registerBot(this);
     }
 
     @EventListener
     public void eventListener(EbotEvent event) {
         log.info("Got an event! {}", event);
-        sendMessage(TelegramMessages.translate(event));
+        if(filterEvent(event)) {
+            sendMessage(TelegramMessages.translate(event));
+        }
+    }
+
+    private boolean filterEvent(EbotEvent event) {
+        if(event instanceof ChangedPriceEvent priceChanged) {
+            if(!ebot.getConfiguredAssets().contains(priceChanged.getBase())) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @SneakyThrows

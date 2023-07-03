@@ -36,7 +36,7 @@ public class PriceService {
             entity.setAsset(asset);
             return entity;
         });
-        if(priceEntity.getPrice() != null && !priceEntity.getPrice().equals(price)) {
+        if(priceEntity.getPrice() != null && !priceEntity.getPrice().setScale(6, RoundingMode.HALF_DOWN).equals(price.setScale(6, RoundingMode.HALF_DOWN))) {
             publisher.publishEvent(new ChangedPriceEvent(asset, pricesProps.getBaseAsset(), price));
         }
         priceEntity.setPrice(price);
