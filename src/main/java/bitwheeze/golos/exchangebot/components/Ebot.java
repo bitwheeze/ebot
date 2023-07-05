@@ -24,11 +24,15 @@ public class Ebot {
 
     public void processTradingPairs() {
         for(var pair : ebotProps.getPairs()) {
-            switch (validatePair(pair)) {
-                case RelativeOrders:
-                    relativeOrders.proccessPair(pair);
-                    break;
-            }
+            processPair(pair);
+        }
+    }
+
+    private void processPair(TradingPair pair) {
+        switch (validatePair(pair)) {
+            case RelativeOrders:
+                relativeOrders.proccessPair(pair);
+                break;
         }
     }
 
@@ -60,10 +64,14 @@ public class Ebot {
 
     @EventListener
     public void onEvent(FillOrderEvent event) {
-        var check = getConfiguredAssets().stream().anyMatch(asset -> event.getFillOrder().getOpenPays().getAsset().equals(asset));
-        if(check) {
-            log.info("changes in order book");
-            processTradingPairs();
-        }
+        final var fo = event.getFillOrder();
+        ebotProps.getPairs()
+                .stream()
+                .filter(pair -> fo.getCurrentOwner().equals(pair.getAccount()) || fo.getOpenOwner().equals(pair.getAccount()))
+                .filter(pair -> fo.getCurrentPays().getAsset().equals(pair.getBase())
+                        || fo.getOpenPays().getAsset().equals(pair.getBase())
+                        || fo.getCurrentPays().getAsset().equals(pair.getQuote())
+                        || fo.getOpenPays().getAsset().equals(pair.getQuote()))
+                .forEach(pair -> this.processPair(pair));
     }
 }

@@ -3,9 +3,7 @@ package bitwheeze.golos.exchangebot.services;
 import bitwheeze.golos.exchangebot.config.CmcProperties;
 import bitwheeze.golos.exchangebot.events.error.CmcErrorEvent;
 import bitwheeze.golos.exchangebot.events.info.CmcLoadEvent;
-import bitwheeze.golos.exchangebot.model.cmc.CmcListingResponse;
-import bitwheeze.golos.exchangebot.model.cmc.ListingConvertData;
-import bitwheeze.golos.exchangebot.model.cmc.Quote;
+import bitwheeze.golos.exchangebot.model.cmc.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
@@ -22,6 +20,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -48,15 +47,20 @@ public class CmcService {
     }
 
     public void queryListingConvert() {
-        log.info("Starting NON-BLOCKING Controller!");
+        log.info("Query CMC Converter ! {}", cmcProps);
+        String slugs = null;
+        if(cmcProps.getSlugs() != null) {
+            slugs = cmcProps.getSlugs().stream().collect(Collectors.joining(","));
+        }
+
+        log.info("slugs = {}", slugs);
 
         try {
             long lastStart = 1;
-            while (lastStart > 0) {
-                log.info("get proces starting at {} for base coin {}", lastStart, cmcProps.getBaseAsset());
-                final String url = getSlowServiceUri(lastStart);
+                log.info("get proces starting at {} for quote coin {}", lastStart, cmcProps.getBaseAsset());
+                final String url = getSlowServiceUri(lastStart, slugs);
                 log.info("url = {}", url);
-                Mono<CmcListingResponse> cmcResponseMono = webClient
+                var query = webClient
                         .get()
                         .uri(url)
                         .header("X-CMC_PRO_API_KEY", cmcProps.getApiKey())
@@ -64,12 +68,18 @@ public class CmcService {
                         .attribute("start", String.valueOf(lastStart))
                         .attribute("limit", String.valueOf(cmcProps.getReadCount()))
                         .attribute("convert", cmcProps.getBaseAsset())
-                        .retrieve()
-                        .bodyToMono(CmcListingResponse.class);
+                        .attribute("slug", slugs);
 
-                lastStart = processRepsponse(cmcResponseMono.block(), lastStart);
+                Mono<CmcQuotesResponse> cmcResponseMono =  query
+                        .retrieve()
+                        .onStatus(status -> !status.is2xxSuccessful(), resp -> {
+                            log.error("error retrieving prices from cmc {}", resp.statusCode());
+                            return resp.createException();
+                        })
+                        .bodyToMono(CmcQuotesResponse.class);
+
+                processRepsponse(cmcResponseMono.block(), lastStart);
                 publisher.publishEvent(new CmcLoadEvent());
-            }
         }catch (Exception ex) {
               publisher.publishEvent(new CmcErrorEvent(null));
         }
@@ -88,29 +98,29 @@ public class CmcService {
         this.queryListingConvert();
     }
 
-    private String getSlowServiceUri(long start) {
+    private String getSlowServiceUri(long start, String slugs) {
         String url = cmcProps.getApiUrl();
-        url += "?" + "start=" + start + "&limit=" + cmcProps.getReadCount() + "&convert=" + cmcProps.getBaseAsset();
+        url += "?" + "convert=" + cmcProps.getBaseAsset();
+        if(slugs != null && !slugs.isBlank()) {
+            url += "&slug=" + slugs;
+        }
         return url;
     }
 
 
-    private long processRepsponse(CmcListingResponse response, long lastStart) {
+    private void processRepsponse(CmcQuotesResponse response, long lastStart) {
+        log.info("got response from cmc", response);
         if (response.getStatus().getError_count() > 0) {
             log.error("Error reading cmc prices {}", response.getStatus());
             publisher.publishEvent(new CmcErrorEvent(response.getStatus()));
-            return -1;
         }
-        int count = response.getData().length;
-        log.info("got next {} entries from cmc", count);
-        for (var data : response.getData()) {
+        for (var data : response.getData().values()) {
             processData(data);
         }
 
-        return count < cmcProps.getReadCount() ? -1 : lastStart + count;
     }
 
-    private void processData(ListingConvertData data) {
+    private void processData(QuoteEntry data) {
         Quote quote = extractQuote(data);
         log.debug("price for {} ({}) is {}", data.getSymbol(), data.getName(), quote.getPrice());
 
@@ -118,10 +128,8 @@ public class CmcService {
     }
 
     @SneakyThrows
-    private Quote extractQuote(ListingConvertData data) {
-        var object = mapper.readTree(data.getQuote());
-        var assetQuote = object.get(cmcProps.getBaseAsset());
-        return mapper.treeToValue(assetQuote, Quote.class);
+    private Quote extractQuote(QuoteEntry data) {
+        return data.getQuote().get(cmcProps.getBaseAsset());
     }
 
     private String mapAsset(String asset) {

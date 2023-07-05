@@ -1,2 +1,6 @@
+spring:
+  config:
+    import: optional:file:./ebotconfig.yml
+
 golos:
   api: https://apibeta.golos.today
