@@ -7,6 +7,7 @@ import bitwheeze.golos.exchangebot.services.CmcService;
 import bitwheeze.golos.exchangebot.services.GolosService;
 import bitwheeze.golos.exchangebot.services.PriceService;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.context.ApplicationEventPublisher;
@@ -59,8 +60,10 @@ public class RelativeOrdersStrategy {
     }
 
     private Collection<? extends Order> generateOrders(TradingPair pair, String base, String quote, BigDecimal availableAmountBase, BigDecimal availableAmountQuote) {
-
+        log.info("");
+        log.info("*******************************************************************");
         log.info("***** generate orders for sell {} buy {} *****", base, quote);
+        log.info("*******************************************************************");
         var list = new ArrayList<Order>();
 
         var middlePriceOpt = getMiddlePrice(pair, base, quote, availableAmountBase, availableAmountQuote);
@@ -216,9 +219,11 @@ public class RelativeOrdersStrategy {
         return price;
     }
 
+    @SneakyThrows
     private void closeOpenOrders(TradingPair pair, String base, String quote) {
         log.info("close all open orders " + pair);
         golosService.closeAllOpenOrders(pair, base, quote);
+        Thread.sleep(6000);
     }
 
     public static boolean validate(RelativeOrders config) {
