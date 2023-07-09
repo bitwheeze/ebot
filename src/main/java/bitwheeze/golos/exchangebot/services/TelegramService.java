@@ -3,7 +3,6 @@ package bitwheeze.golos.exchangebot.services;
 import bitwheeze.golos.exchangebot.components.Ebot;
 import bitwheeze.golos.exchangebot.config.TelegramProperties;
 import bitwheeze.golos.exchangebot.events.EbotEvent;
-import bitwheeze.golos.exchangebot.events.info.ChangedPriceEvent;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -38,12 +37,13 @@ public class TelegramService extends TelegramLongPollingBot {
     }
 
     private boolean filterEvent(EbotEvent event) {
+        /*
         if(event instanceof ChangedPriceEvent priceChanged) {
             if(!ebot.getConfiguredAssets().contains(priceChanged.getBase())) {
                 return false;
             }
         }
-
+*/
         return true;
     }
 

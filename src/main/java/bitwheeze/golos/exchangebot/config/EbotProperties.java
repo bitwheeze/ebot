@@ -12,7 +12,7 @@ import java.util.List;
 @Data
 @ToString
 public class EbotProperties {
-    String golosAliasCmc;
     String cron = "0 * * * * *";
     List<TradingPair> pairs;
+    int expiration = 15;
 }

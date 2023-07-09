@@ -1,5 +1,6 @@
 package bitwheeze.golos.exchangebot.components;
 
+import bitwheeze.golos.exchangebot.config.EbotProperties;
 import bitwheeze.golos.exchangebot.config.RelativeOrders;
 import bitwheeze.golos.exchangebot.config.TradingPair;
 import bitwheeze.golos.exchangebot.model.ebot.Order;
@@ -28,6 +29,7 @@ public class RelativeOrdersStrategy {
     private final GolosService golosService;
     private final ApplicationEventPublisher publisher;
     private final PriceService priceService;
+    private final EbotProperties ebotProperties;
 
     public void proccessPair(TradingPair pair) {
         log.info("Processing pair {}", pair);
@@ -103,9 +105,14 @@ public class RelativeOrdersStrategy {
                 break;
             }
 
+            var expiration = ebotProperties.getExpiration();
+            if(pair.getExpiration() > 0) {
+                expiration = pair.getExpiration();
+            }
+
             var minToReceive = orderAmount.multiply(orderPrice);
             log.info("\tmin to receive {}", minToReceive);
-            Order order = createOrder(base, quote, orderAmount, minToReceive, pair.getExpiration());
+            Order order = createOrder(base, quote, orderAmount, minToReceive, expiration);
             log.info("\tgenerated order {}", order);
             list.add(order);
 

@@ -17,4 +17,5 @@ public class ChangedPriceEvent extends EbotEvent {
     String base;
     String quote;
     BigDecimal price;
+    BigDecimal change;
 }

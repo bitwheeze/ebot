@@ -36,8 +36,14 @@ public class PriceService {
             entity.setAsset(asset);
             return entity;
         });
-        if(priceEntity.getPrice() != null && !priceEntity.getPrice().setScale(6, RoundingMode.HALF_DOWN).equals(price.setScale(6, RoundingMode.HALF_DOWN))) {
-            publisher.publishEvent(new ChangedPriceEvent(asset, pricesProps.getBaseAsset(), price));
+
+        var actualPrice = priceEntity.getPrice() != null?priceEntity.getPrice().setScale(6, RoundingMode.HALF_DOWN):BigDecimal.ZERO;
+        var newPrice = price.setScale(6, RoundingMode.HALF_DOWN);
+
+        if(priceEntity.getPrice() != null && !actualPrice.equals(newPrice)) {
+            var change = actualPrice.subtract(newPrice);
+            var changePercent = change.multiply(BigDecimal.valueOf(100.0)).divide(actualPrice, RoundingMode.HALF_DOWN).setScale(2, RoundingMode.HALF_DOWN);
+            publisher.publishEvent(new ChangedPriceEvent(asset, pricesProps.getBaseAsset(), price, changePercent));
         }
         priceEntity.setPrice(price);
         priceEntity.setLastUpdated(lastUpdated);

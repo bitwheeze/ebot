@@ -26,5 +26,5 @@ public class TradingPair {
     RelativeOrders relativeOrders;
 
     /** Expiration in minutes */
-    int expiration = 15;
+    int expiration = -1;
 }

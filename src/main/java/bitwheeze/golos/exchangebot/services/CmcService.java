@@ -81,7 +81,8 @@ public class CmcService {
                 processRepsponse(cmcResponseMono.block(), lastStart);
                 publisher.publishEvent(new CmcLoadEvent());
         }catch (Exception ex) {
-              publisher.publishEvent(new CmcErrorEvent(null));
+            log.error("exception while processing cmc prices", ex);
+            publisher.publishEvent(new CmcErrorEvent(null));
         }
 
     }

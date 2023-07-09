@@ -1,0 +1,13 @@
+ebot:
+  pairs:
+    - account: lex
+      key: 5K67PNheLkmxkgJ5UjvR8Nyt3GVPoLEN1dMZjFuNETzrNyMecPG
+      base: GOLOS
+      quote: GBG
+      relative-orders:
+        enabled: true
+        start-order-amount: 200
+        spread: 4.33
+        orders-count: 6
+        mode: Balance
+        order-volume-change-percent: 110.0

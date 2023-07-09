@@ -1,18 +1,10 @@
+#spring:
+#  config:
+#    import: optional:file:./golos_gbg.yml
+
 ebot:
   cron: 0 * * * * *
-  pairs:
-    - account: lex
-      key: 5K67PNheLkmxkgJ5UjvR8Nyt3GVPoLEN1dMZjFuNETzrNyMecPG
-      base: GOLOS
-      quote: GBG
-      exiration: 14
-      relative-orders:
-        enabled: true
-        start-order-amount: 200
-        spread: 4.33
-        orders-count: 6
-        mode: Balance
-        order-volume-change-percent: 110.0
+  exiration: 14
 
 cmc:
   cron: 0 0 */6 * * *
