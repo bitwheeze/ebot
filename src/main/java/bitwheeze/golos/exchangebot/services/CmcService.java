@@ -109,7 +109,7 @@ public class CmcService {
 
 
     private void processRepsponse(CmcQuotesResponse response, long lastStart) {
-        log.info("got response from cmc", response);
+        log.info("got response from cmc {}", response);
         if (response.getStatus().getError_count() > 0) {
             log.error("Error reading cmc prices {}", response.getStatus());
             publisher.publishEvent(new CmcErrorEvent(response.getStatus()));

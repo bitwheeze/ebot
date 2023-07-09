@@ -30,7 +30,6 @@ public class RelativeOrdersStrategy {
 
     public void proccessPair(TradingPair pair) {
         log.info("Processing pair {}", pair);
-        closeOpenOrders(pair);
         createOrders(pair);
     }
 
@@ -182,7 +181,7 @@ public class RelativeOrdersStrategy {
 
         var availableAmountQuote = getAvialableAmount(pair, pair.getQuote());
         var availableAmountBase = getAvialableAmount(pair, pair.getBase());
-
+        closeOpenOrders(pair, pair.getQuote(), pair.getBase());
         return generateOrders(pair, pair.getQuote(), pair.getBase(), availableAmountQuote, availableAmountBase);
     }
 
@@ -191,7 +190,7 @@ public class RelativeOrdersStrategy {
         //We sell quote for base
         var availableAmountQuote = getAvialableAmount(pair, pair.getQuote());
         var availableAmountBase = getAvialableAmount(pair, pair.getBase());
-
+        closeOpenOrders(pair, pair.getBase(), pair.getQuote());
         return generateOrders(pair, pair.getBase(), pair.getQuote(), availableAmountBase, availableAmountQuote);
     }
 
@@ -217,9 +216,9 @@ public class RelativeOrdersStrategy {
         return price;
     }
 
-    private void closeOpenOrders(TradingPair pair) {
+    private void closeOpenOrders(TradingPair pair, String base, String quote) {
         log.info("close all open orders " + pair);
-        golosService.closeAllOpenOrders(pair);
+        golosService.closeAllOpenOrders(pair, base, quote);
     }
 
     public static boolean validate(RelativeOrders config) {

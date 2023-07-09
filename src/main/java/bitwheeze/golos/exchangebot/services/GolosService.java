@@ -148,13 +148,14 @@ public class GolosService {
         priceService.updatePrice("GBG", quote, LocalDateTime.now(ZoneOffset.UTC));
     }
 
-    public void closeAllOpenOrders(TradingPair pair) {
+    public void closeAllOpenOrders(TradingPair pair, String base, String quote) {
         final var builder = transactionFactory.getBuidler();
         List<Operation> ops = new ArrayList<>();
         api.getOpenOrders(pair.getAccount(), pair.getBase(), pair.getQuote())
                 .block()
                 .orElseThrow()
                 .stream()
+                .filter(openOrder -> openOrder.getAsset1().getAsset().equals(base))
                 .map(openOrder -> {
                     var cancelOp = new LimitOrderCancel();
                     cancelOp.setOwner(openOrder.getSeller());
