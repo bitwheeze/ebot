@@ -180,7 +180,7 @@ public class GolosService {
         balances.put("GBG", acc.getSbdBalance().getValue());
 
         var uiaList = dbApi.getAccountsBalances(new String [] {account}).block().orElseThrow();
-
+        log.info("uiaList {}", uiaList);
         uiaList
                 .get(0)
                 .keySet()
