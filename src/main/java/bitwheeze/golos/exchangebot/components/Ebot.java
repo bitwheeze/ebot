@@ -6,7 +6,6 @@ import bitwheeze.golos.exchangebot.events.info.FillOrderEvent;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -66,7 +65,7 @@ public class Ebot {
                 .collect(Collectors.toSet());
     }
 
-    @EventListener
+    //@EventListener
     public void onEvent(FillOrderEvent event) {
         final var fo = event.getFillOrder();
         if(ebotProps.getPairs() != null) {
