@@ -5,6 +5,7 @@ import lombok.ToString;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Component
@@ -15,4 +16,5 @@ public class EbotProperties {
     String cron = "0 * * * * *";
     List<TradingPair> pairs;
     int expiration = 15;
+    BigDecimal priceChangeThreshold = BigDecimal.valueOf(0.5);
 }

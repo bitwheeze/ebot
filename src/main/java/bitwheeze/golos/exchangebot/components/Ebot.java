@@ -68,6 +68,9 @@ public class Ebot {
 
     @EventListener
     public void onEvent(ChangedPriceEvent event) {
+        var threshold = ebotProps.getPriceChangeThreshold();
+        var change = event.getChange().abs();
+        if(change.compareTo(threshold) < 0) return;
         if(ebotProps.getPairs() != null) {
             ebotProps.getPairs()
                 .stream()
