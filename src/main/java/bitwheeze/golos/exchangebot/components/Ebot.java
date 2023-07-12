@@ -2,10 +2,11 @@ package bitwheeze.golos.exchangebot.components;
 
 import bitwheeze.golos.exchangebot.config.EbotProperties;
 import bitwheeze.golos.exchangebot.config.TradingPair;
-import bitwheeze.golos.exchangebot.events.info.FillOrderEvent;
+import bitwheeze.golos.exchangebot.events.info.ChangedPriceEvent;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -65,18 +66,13 @@ public class Ebot {
                 .collect(Collectors.toSet());
     }
 
-    //@EventListener
-    public void onEvent(FillOrderEvent event) {
-        final var fo = event.getFillOrder();
+    @EventListener
+    public void onEvent(ChangedPriceEvent event) {
         if(ebotProps.getPairs() != null) {
             ebotProps.getPairs()
-                    .stream()
-                    .filter(pair -> fo.getCurrentOwner().equals(pair.getAccount()) || fo.getOpenOwner().equals(pair.getAccount()))
-                    .filter(pair -> fo.getCurrentPays().getAsset().equals(pair.getBase())
-                            || fo.getOpenPays().getAsset().equals(pair.getBase())
-                            || fo.getCurrentPays().getAsset().equals(pair.getQuote())
-                            || fo.getOpenPays().getAsset().equals(pair.getQuote()))
-                    .forEach(pair -> this.processPair(pair));
+                .stream()
+                .filter(pair -> event.getBase().equals(pair.getBase()) || event.getBase().equals(pair.getQuote()))
+                .forEach(pair -> this.processPair(pair));
         }
     }
 }
