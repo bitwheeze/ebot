@@ -50,7 +50,7 @@ public class PriceService {
         priceRepo.save(priceEntity);
     }
 
-    private Optional<PriceEntity> getPrice(final String asset) {
+    public Optional<PriceEntity> getPrice(final String asset) {
         var priceFromOpt = priceRepo.findById(asset);
 
         if(priceFromOpt.isEmpty()) {

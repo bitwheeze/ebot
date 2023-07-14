@@ -4,6 +4,7 @@ import bitwheeze.golos.exchangebot.config.EbotProperties;
 import bitwheeze.golos.exchangebot.config.TradingPair;
 import bitwheeze.golos.exchangebot.events.info.ChangedPriceEvent;
 import bitwheeze.golos.exchangebot.model.ebot.Order;
+import bitwheeze.golos.exchangebot.services.CmcService;
 import bitwheeze.golos.exchangebot.services.GolosService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class Ebot {
     private final EbotProperties ebotProps;
     private final RelativeOrdersStrategy relativeOrders;
     private final GolosService golosService;
+    private final CmcService cmcService;
 
     public void processTradingPairs() {
         if(ebotProps.getPairs() != null) {
@@ -68,6 +70,8 @@ public class Ebot {
     @PostConstruct
     public void init() {
         log.info("process pairs on start");
+        cmcService.queryCmcQuotes();
+        golosService.retrieveGlsPrice();
         processTradingPairs();
     }
 

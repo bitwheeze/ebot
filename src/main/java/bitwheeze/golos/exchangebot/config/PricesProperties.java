@@ -10,6 +10,6 @@ import org.springframework.stereotype.Component;
 @Data
 @ToString
 public class PricesProperties {
-    String baseAsset = "GOLOS";
+    String baseAsset = "USD";
     int maxAge = 1440;
 }

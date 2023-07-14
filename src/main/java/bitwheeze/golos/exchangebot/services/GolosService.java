@@ -119,13 +119,8 @@ public class GolosService {
          return orderId++;
     }
 
-    public void cancelOrder(long id) {
-
-    }
-
     @PostConstruct
     public void init() {
-        retrieveGlsPrice();
         initScanner();
     }
 
@@ -141,12 +136,17 @@ public class GolosService {
         var medianPrice = witnessApi.getGetCurrentMedianHistoryPrice().block().orElseThrow();
         var base = medianPrice.getBase().getValue();
         var quote = medianPrice.getQuote().getValue();
-        if(medianPrice.getBase().getAsset().equals(pricesProperties.getBaseAsset())) {
+        if(medianPrice.getBase().getAsset().equals("GOLOS")) {
             base = quote;
             quote = medianPrice.getBase().getValue();
         }
         quote = quote.divide(base, RoundingMode.HALF_DOWN);
-        priceService.updatePrice("GBG", quote, LocalDateTime.now(ZoneOffset.UTC));
+        final var golosPriceInBaseOpt = priceService.convert(quote, "GOLOS", pricesProperties.getBaseAsset());
+        if(golosPriceInBaseOpt.isEmpty()) {
+            log.warn("No GOLOS price available!");
+            return;
+        }
+        priceService.updatePrice("GBG", golosPriceInBaseOpt.get(), LocalDateTime.now(ZoneOffset.UTC));
     }
 
     public void closeAllOpenOrders(TradingPair pair, String base, String quote) {

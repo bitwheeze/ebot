@@ -3,9 +3,10 @@ package bitwheeze.golos.exchangebot.services;
 import bitwheeze.golos.exchangebot.config.CmcProperties;
 import bitwheeze.golos.exchangebot.events.error.CmcErrorEvent;
 import bitwheeze.golos.exchangebot.events.info.CmcLoadEvent;
-import bitwheeze.golos.exchangebot.model.cmc.*;
+import bitwheeze.golos.exchangebot.model.cmc.CmcQuotesResponse;
+import bitwheeze.golos.exchangebot.model.cmc.Quote;
+import bitwheeze.golos.exchangebot.model.cmc.QuoteEntry;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +47,7 @@ public class CmcService {
         this.priceService = priceService;
     }
 
-    public void queryListingConvert() {
+    public void queryCmcQuotes() {
         log.info("Query CMC Converter ! {}", cmcProps);
         String slugs = null;
         if(cmcProps.getSlugs() != null) {
@@ -91,12 +92,7 @@ public class CmcService {
     @Scheduled(cron = "#{@cmcProperties.cron}")
     @Transactional
     public void cronJob() {
-        this.queryListingConvert();
-    }
-
-    @PostConstruct
-    public void init() {
-        this.queryListingConvert();
+        this.queryCmcQuotes();
     }
 
     private String getSlowServiceUri(long start, String slugs) {
