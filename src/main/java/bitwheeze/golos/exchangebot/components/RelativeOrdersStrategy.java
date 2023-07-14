@@ -31,16 +31,9 @@ public class RelativeOrdersStrategy {
     private final PriceService priceService;
     private final EbotProperties ebotProperties;
 
-    public void proccessPair(TradingPair pair) {
+    public List<Order> proccessPair(TradingPair pair) {
         log.info("Processing pair {}", pair);
-        createOrders(pair);
-    }
-
-    private void createOrders(TradingPair pair) {
-        log.info("create new orders " + pair);
-        List<Order> orderList = generateOrders(pair);
-        log.info("created orders {} {}", orderList.size(), orderList);
-        golosService.createOrders(pair, orderList);
+        return generateOrders(pair);
     }
 
     private List<Order> generateOrders(TradingPair pair) {

@@ -20,7 +20,7 @@ public class CmcProperties {
 
     int readCount = 5000;
 
-    String baseAsset = "GLS";
+    String baseAsset = "USD";
 
     List<String> slugs;
 

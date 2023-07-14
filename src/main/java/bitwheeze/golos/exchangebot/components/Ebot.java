@@ -3,6 +3,8 @@ package bitwheeze.golos.exchangebot.components;
 import bitwheeze.golos.exchangebot.config.EbotProperties;
 import bitwheeze.golos.exchangebot.config.TradingPair;
 import bitwheeze.golos.exchangebot.events.info.ChangedPriceEvent;
+import bitwheeze.golos.exchangebot.model.ebot.Order;
+import bitwheeze.golos.exchangebot.services.GolosService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,8 +12,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -22,21 +23,33 @@ public class Ebot {
 
     private final EbotProperties ebotProps;
     private final RelativeOrdersStrategy relativeOrders;
+    private final GolosService golosService;
 
     public void processTradingPairs() {
         if(ebotProps.getPairs() != null) {
+
+            Map<TradingPair, List<Order>> orders = new HashMap<>();
+
             for (var pair : ebotProps.getPairs()) {
-                processPair(pair);
+                var orderList = processPair(pair);
+                if(!orderList.isEmpty()) {
+                    orders.put(pair, orderList);
+                }
+            }
+
+            for(var pair : orders.entrySet()) {
+                golosService.createOrders(pair.getKey(), pair.getValue());
             }
         }
     }
 
-    private void processPair(TradingPair pair) {
+    private List<Order> processPair(TradingPair pair) {
         switch (validatePair(pair)) {
             case RelativeOrders:
-                relativeOrders.proccessPair(pair);
-                break;
+                return relativeOrders.proccessPair(pair);
         }
+
+        return Collections.emptyList();
     }
 
     private Strategy validatePair(TradingPair pair) {

@@ -48,6 +48,7 @@ public class GolosService {
         final var builder = transactionFactory.getBuidler();
         List<Operation> ops = new ArrayList<>();
         orderList.stream()
+                .filter(order -> order.getAmountToSell().compareTo(BigDecimal.ZERO) > 0)
                 .peek(order -> publisher.publishEvent(new NewOrderEvent(order)))
                 .map(order -> {
                     var orderCreate = buildLimitOrderCreate(order, pair.getAccount());
@@ -176,15 +177,23 @@ public class GolosService {
     public Map<String,BigDecimal> getAccBalances(String account) {
         var balances = new HashMap<String,BigDecimal>();
         var acc = dbApi.getAccount(account).block().orElseThrow();
-        balances.put("GOLOS", acc.getBalance().getValue());
-        balances.put("GBG", acc.getSbdBalance().getValue());
+
+        var golos = acc.getBalance().getValue().add(acc.getMarketBalance().getValue());
+        var gbg = acc.getSbdBalance().getValue().add(acc.getMarketSbdBalance().getValue());
+
+        balances.put("GOLOS", golos);
+        balances.put("GBG", gbg);
 
         var uiaList = dbApi.getAccountsBalances(new String [] {account}).block().orElseThrow();
         log.info("uiaList {}", uiaList);
         uiaList
                 .get(0)
                 .keySet()
-                .forEach(asset -> balances.put(asset, uiaList.get(0).get(asset).getBalance().getValue()));
+                .forEach(asset -> {
+                    var inf = uiaList.get(0).get(asset);
+                    var balance = inf.getBalance().getValue().add(inf.getMarketBalance().getValue());
+                    balances.put(asset, balance);
+                });
         return balances;
     }
 
