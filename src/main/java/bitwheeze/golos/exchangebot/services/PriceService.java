@@ -7,6 +7,7 @@ import bitwheeze.golos.exchangebot.events.error.CmcOutdatedPriceInfo;
 import bitwheeze.golos.exchangebot.events.info.ChangedPriceEvent;
 import bitwheeze.golos.exchangebot.persistence.entities.PriceEntity;
 import bitwheeze.golos.exchangebot.persistence.repositories.PriceRepository;
+import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,11 @@ public class PriceService {
     private final PriceRepository priceRepo;
     private final ApplicationEventPublisher publisher;
     private final PricesProperties pricesProps;
+
+    @PostConstruct
+    public void init() {
+        this.updatePrice(pricesProps.getBaseAsset(), BigDecimal.ONE, LocalDateTime.now());
+    }
 
     @Transactional
     public void updatePrice(String asset, BigDecimal price, LocalDateTime lastUpdated) {
@@ -88,7 +94,7 @@ public class PriceService {
         if(priceFromOpt.isEmpty()) return Optional.empty();
 
         if (assetTo.equals(pricesProps.getBaseAsset())) {
-            return Optional.of(priceFromOpt.get().getPrice());
+            return Optional.of(amount.multiply(priceFromOpt.get().getPrice()));
         }
 
         var priceToOpt = getPrice(assetTo);

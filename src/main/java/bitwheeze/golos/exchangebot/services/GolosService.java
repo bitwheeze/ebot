@@ -134,19 +134,25 @@ public class GolosService {
     public void retrieveGlsPrice() {
         log.info("retrieve current GLS/GOLOS feed");
         var medianPrice = witnessApi.getGetCurrentMedianHistoryPrice().block().orElseThrow();
-        var base = medianPrice.getBase().getValue();
-        var quote = medianPrice.getQuote().getValue();
-        if(medianPrice.getBase().getAsset().equals("GOLOS")) {
+        log.info("median price = {}", medianPrice);
+        var base = medianPrice.getBase();
+        var quote = medianPrice.getQuote();
+        if(base.getAsset().equals("GOLOS")) {
             base = quote;
-            quote = medianPrice.getBase().getValue();
+            quote = medianPrice.getBase();
         }
-        quote = quote.divide(base, RoundingMode.HALF_DOWN);
-        final var golosPriceInBaseOpt = priceService.convert(quote, "GOLOS", pricesProperties.getBaseAsset());
+        var gbgPriceInGolos = quote.getValue().divide(base.getValue(), RoundingMode.HALF_DOWN);
+        log.info("price of 1 {} = {}", base.getAsset(), gbgPriceInGolos);
+        final var golosPriceInBaseOpt = priceService.convert(gbgPriceInGolos, "GOLOS", pricesProperties.getBaseAsset());
         if(golosPriceInBaseOpt.isEmpty()) {
             log.warn("No GOLOS price available!");
             return;
         }
+        log.info("price of 1 {} in {} = {}", base.getAsset(), pricesProperties.getBaseAsset(), golosPriceInBaseOpt);
         priceService.updatePrice("GBG", golosPriceInBaseOpt.get(), LocalDateTime.now(ZoneOffset.UTC));
+        log.info("test 1 GBG in GOLOS = {}", priceService.convert(BigDecimal.ONE, "GBG", "GOLOS"));
+        log.info("test 1 GOLOS in {} = {}", pricesProperties.getBaseAsset(), priceService.convert(BigDecimal.ONE, "GOLOS", pricesProperties.getBaseAsset()));
+        log.info("test 1 GOLOS in GBG = {}", priceService.convert(BigDecimal.ONE, "GOLOS", "GBG"));
     }
 
     public void closeAllOpenOrders(TradingPair pair, String base, String quote) {
