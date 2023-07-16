@@ -6,6 +6,7 @@ import bitwheeze.golos.exchangebot.config.TradingPair;
 import bitwheeze.golos.exchangebot.events.info.FillOrderEvent;
 import bitwheeze.golos.exchangebot.events.info.NewOrderEvent;
 import bitwheeze.golos.exchangebot.model.ebot.Order;
+import bitwheeze.golos.exchangebot.services.helpers.Balances;
 import bitwheeze.golos.goloslib.*;
 import bitwheeze.golos.goloslib.model.Asset;
 import bitwheeze.golos.goloslib.model.op.LimitOrderCancel;
@@ -155,14 +156,13 @@ public class GolosService {
         log.info("test 1 GOLOS in GBG = {}", priceService.convert(BigDecimal.ONE, "GOLOS", "GBG"));
     }
 
-    public void closeAllOpenOrders(TradingPair pair, String base, String quote) {
+    public void closeAllOpenOrders(TradingPair pair) {
         final var builder = transactionFactory.getBuidler();
         List<Operation> ops = new ArrayList<>();
         api.getOpenOrders(pair.getAccount(), pair.getBase(), pair.getQuote())
                 .block()
                 .orElseThrow()
                 .stream()
-                .filter(openOrder -> openOrder.getAsset1().getAsset().equals(base))
                 .map(openOrder -> {
                     var cancelOp = new LimitOrderCancel();
                     cancelOp.setOwner(openOrder.getSeller());
@@ -180,15 +180,15 @@ public class GolosService {
 
     }
 
-    public Map<String,BigDecimal> getAccBalances(String account) {
-        var balances = new HashMap<String,BigDecimal>();
+    public Balances getAccBalances(String account) {
+        var balances = new Balances();
         var acc = dbApi.getAccount(account).block().orElseThrow();
 
-        var golos = acc.getBalance().getValue().add(acc.getMarketBalance().getValue());
-        var gbg = acc.getSbdBalance().getValue().add(acc.getMarketSbdBalance().getValue());
+        balances.add("GOLOS", acc.getBalance().getValue());
+        balances.add("GOLOS", acc.getMarketBalance().getValue());
 
-        balances.put("GOLOS", golos);
-        balances.put("GBG", gbg);
+        balances.add("GBG", acc.getSbdBalance().getValue());
+        balances.add("GBG", acc.getMarketSbdBalance().getValue());
 
         var uiaList = dbApi.getAccountsBalances(new String [] {account}).block().orElseThrow();
         log.info("uiaList {}", uiaList);
@@ -197,9 +197,11 @@ public class GolosService {
                 .keySet()
                 .forEach(asset -> {
                     var inf = uiaList.get(0).get(asset);
-                    var balance = inf.getBalance().getValue().add(inf.getMarketBalance().getValue());
-                    balances.put(asset, balance);
+                    balances.add(asset, inf.getBalance().getValue());
+                    balances.add(asset, inf.getMarketBalance().getValue());
                 });
+
+        log.info("balances = {}", balances);
         return balances;
     }
 

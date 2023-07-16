@@ -5,10 +5,9 @@ import bitwheeze.golos.exchangebot.config.RelativeOrders;
 import bitwheeze.golos.exchangebot.config.TradingPair;
 import bitwheeze.golos.exchangebot.model.ebot.Order;
 import bitwheeze.golos.exchangebot.services.CmcService;
-import bitwheeze.golos.exchangebot.services.GolosService;
 import bitwheeze.golos.exchangebot.services.PriceService;
+import bitwheeze.golos.exchangebot.services.helpers.Balances;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.context.ApplicationEventPublisher;
@@ -26,42 +25,41 @@ import java.util.*;
 public class RelativeOrdersStrategy {
 
     private final CmcService cmcService;
-    private final GolosService golosService;
     private final ApplicationEventPublisher publisher;
     private final PriceService priceService;
     private final EbotProperties ebotProperties;
 
-    public List<Order> proccessPair(TradingPair pair) {
+    public List<Order> proccessPair(TradingPair pair, Balances balances) {
         log.info("Processing pair {}", pair);
-        return generateOrders(pair);
+        return generateOrders(pair, balances);
     }
 
-    private List<Order> generateOrders(TradingPair pair) {
+    private List<Order> generateOrders(TradingPair pair, Balances balances) {
         var list = new ArrayList<Order>();
 
         switch(pair.getRelativeOrders().getMode()) {
             case Sell:
             case Balance:
-                list.addAll(generateSellOrders(pair));
+                list.addAll(generateSellOrders(pair, balances));
         }
 
         switch(pair.getRelativeOrders().getMode()) {
             case Buy:
             case Balance:
-                list.addAll(generateBuyOrders(pair));
+                list.addAll(generateBuyOrders(pair, balances));
         }
 
         return  list;
     }
 
-    private Collection<? extends Order> generateOrders(TradingPair pair, String base, String quote, BigDecimal availableAmountBase, BigDecimal availableAmountQuote) {
+    private Collection<? extends Order> generateOrders(TradingPair pair, String base, String quote, Balances balances) {
         log.info("");
         log.info("*******************************************************************");
         log.info("***** generate orders for sell {} buy {} *****", base, quote);
         log.info("*******************************************************************");
         var list = new ArrayList<Order>();
 
-        var middlePriceOpt = getMiddlePrice(pair, base, quote, availableAmountBase, availableAmountQuote);
+        var middlePriceOpt = getMiddlePrice(pair, base, quote);
 
         if(middlePriceOpt.isEmpty() || middlePriceOpt.get().equals(BigDecimal.ZERO)) {
             log.warn("no middle price available! {}/{}", base, quote);
@@ -74,14 +72,9 @@ public class RelativeOrdersStrategy {
         var spread = calculateSpread(pair.getRelativeOrders().getSpread(), middlePrice);
         log.info("spread {}", spread);
 
-        var availableAmount = availableAmountBase;
         var orderAmount = getStartOrderAmount(pair, base, quote);
 
-
-        if(orderAmount.compareTo(availableAmount) > 0) {
-            log.info("available amount less then required, set order amount to available");
-            orderAmount = availableAmount;
-        }
+        orderAmount = balances.queryAmount(base, orderAmount);
 
         var orderPrice = middlePrice.add(spread);
 
@@ -91,10 +84,9 @@ public class RelativeOrdersStrategy {
             log.info("****create order");
 
             log.info("\torder amount in {} = {}", base, orderAmount);
-            log.info("\tavaillableAmount in {} = {}", base, availableAmount);
             log.info("\torderPrice in {} = {}", base, orderPrice);
 
-            if(availableAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            if(orderAmount.compareTo(BigDecimal.ZERO) <= 0) {
                 break;
             }
 
@@ -109,24 +101,13 @@ public class RelativeOrdersStrategy {
             log.info("\tgenerated order {}", order);
             list.add(order);
 
-            //reduce availableAmount
-            availableAmount = availableAmount.subtract(orderAmount);
-            log.info("\t\tnew availlableAmount in {} = {}", base, availableAmount);
             //change price
             orderPrice = orderPrice.add(orderPrice.multiply(pair.getRelativeOrders().getOrderPriceIncreasePercent()).divide(BigDecimal.valueOf(100.00), RoundingMode.DOWN));
             //change order amount
             orderAmount = orderAmount.multiply(pair.getRelativeOrders().getOrderVolumeChangePercent()).divide(BigDecimal.valueOf(100.00), RoundingMode.DOWN);
-            log.info("\t\tnew order amount in {} = {} ({})", base, orderAmount, orderAmount.compareTo(availableAmount));
-            //check order Amount against available amount
+            orderAmount = balances.queryAmount(base, orderAmount);
 
-            if(orderAmount.compareTo(availableAmount) > 0) {
-                log.info("\t\tavailable amount less then required, set order amount to available");
-                orderAmount = availableAmount;
-            }
-
-            if(orderAmount.compareTo(BigDecimal.ZERO) <= 0) {
-                break;
-            }
+            log.info("\t\tnew order amount in {} = {}", base, orderAmount);
         }
 
         return list;
@@ -155,46 +136,17 @@ public class RelativeOrdersStrategy {
         return order;
     }
 
-    private BigDecimal getAvialableAmount(TradingPair pair, String asset) {
-        var availableAmount = BigDecimal.ZERO;
-        var balances = golosService.getAccBalances(pair.getAccount());
-        if(!balances.containsKey(asset)) {
-            return availableAmount;
-        }
-
-        availableAmount = balances.get(asset);
-
-        log.info("asset amount in {} = {}", asset,availableAmount);
-
-        var reserve = availableAmount.multiply(pair.getReserve()).divide(BigDecimal.valueOf(100.00), RoundingMode.HALF_DOWN);
-        availableAmount = availableAmount.subtract(reserve);
-
-        log.info("available amount in {} = {}", asset,availableAmount);
-
-        if(availableAmount.equals(BigDecimal.ZERO)) {
-            return BigDecimal.ZERO;
-        }
-
-        return availableAmount;
-    }
-
-    private Collection<? extends Order> generateBuyOrders(TradingPair pair) {
+    private Collection<? extends Order> generateBuyOrders(TradingPair pair, Balances balances) {
         //Buy for lower prices  middlePrice + Spread * -1.0
         //We sell quote for base
 
-        var availableAmountQuote = getAvialableAmount(pair, pair.getQuote());
-        var availableAmountBase = getAvialableAmount(pair, pair.getBase());
-        closeOpenOrders(pair, pair.getQuote(), pair.getBase());
-        return generateOrders(pair, pair.getQuote(), pair.getBase(), availableAmountQuote, availableAmountBase);
+        return generateOrders(pair, pair.getQuote(), pair.getBase(), balances);
     }
 
-    private Collection<? extends Order> generateSellOrders(TradingPair pair) {
+    private Collection<? extends Order> generateSellOrders(TradingPair pair, Balances balances) {
         //Sell for higher prices  middlePrice + Spread * 1.0
         //We sell quote for base
-        var availableAmountQuote = getAvialableAmount(pair, pair.getQuote());
-        var availableAmountBase = getAvialableAmount(pair, pair.getBase());
-        closeOpenOrders(pair, pair.getBase(), pair.getQuote());
-        return generateOrders(pair, pair.getBase(), pair.getQuote(), availableAmountBase, availableAmountQuote);
+        return generateOrders(pair, pair.getBase(), pair.getQuote(), balances);
     }
 
     private BigDecimal calculateSpread(BigDecimal spreadPercent, BigDecimal middlePrice) {
@@ -202,28 +154,12 @@ public class RelativeOrdersStrategy {
     }
 
 
-    private Optional<BigDecimal> getMiddlePrice(TradingPair pair, String base, String quote, BigDecimal availableAmountBase, BigDecimal availableAmountQuote) {
+    private Optional<BigDecimal> getMiddlePrice(TradingPair pair, String base, String quote) {
         //TODO: use other strategies
         var price = priceService.convert(BigDecimal.ONE, base, quote);
         if(price.isEmpty()) return price;
-        var quoteInBase = priceService.convert(availableAmountQuote, quote, base);
-
-        if(quoteInBase.isPresent()) {
-            if(availableAmountBase.compareTo(quoteInBase.get()) < 0) {
-                var spread = calculateSpread(pair.getRelativeOrders().getSpread(), price.get());
-                var newPrice = price.get().add(spread);
-                return Optional.of(newPrice);
-            }
-        }
 
         return price;
-    }
-
-    @SneakyThrows
-    private void closeOpenOrders(TradingPair pair, String base, String quote) {
-        log.info("close all open orders " + pair);
-        golosService.closeAllOpenOrders(pair, base, quote);
-        Thread.sleep(6000);
     }
 
     public static boolean validate(RelativeOrders config) {

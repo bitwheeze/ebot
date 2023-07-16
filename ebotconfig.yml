@@ -1,6 +1,6 @@
-#spring:
-#  config:
-#    import: optional:file:./golos_gbg.yml
+spring:
+  config:
+    import: optional:file:./golos_gbg.yml
 
 ebot:
   cron: 0 * * * * *

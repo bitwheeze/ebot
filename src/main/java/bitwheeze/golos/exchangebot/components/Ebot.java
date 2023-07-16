@@ -6,6 +6,7 @@ import bitwheeze.golos.exchangebot.events.info.ChangedPriceEvent;
 import bitwheeze.golos.exchangebot.model.ebot.Order;
 import bitwheeze.golos.exchangebot.services.CmcService;
 import bitwheeze.golos.exchangebot.services.GolosService;
+import bitwheeze.golos.exchangebot.services.helpers.Balances;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,28 +28,52 @@ public class Ebot {
     private final GolosService golosService;
     private final CmcService cmcService;
 
-    public void processTradingPairs() {
-        if(ebotProps.getPairs() != null) {
+    public void processTradingPairs(String asset) {
 
-            Map<TradingPair, List<Order>> orders = new HashMap<>();
 
-            for (var pair : ebotProps.getPairs()) {
-                var orderList = processPair(pair);
-                if(!orderList.isEmpty()) {
-                    orders.put(pair, orderList);
-                }
+        if(ebotProps.getPairs() == null)  return;
+
+        var balances = getBalances();
+
+        log.info("all balances = {}", balances);
+
+        Map<TradingPair, List<Order>> orders = new HashMap<>();
+
+        for (var pair : ebotProps.getPairs()) {
+
+            if(asset != null && !(pair.getBase().equals(asset) || pair.getQuote().equals(asset))) {
+                continue;
             }
 
-            for(var pair : orders.entrySet()) {
-                golosService.createOrders(pair.getKey(), pair.getValue());
+            golosService.closeAllOpenOrders(pair);
+            var orderList = processPair(pair, balances.get(pair.getAccount()));
+            if(!orderList.isEmpty()) {
+                orders.put(pair, orderList);
             }
         }
+
+        for(var pair : orders.entrySet()) {
+            golosService.createOrders(pair.getKey(), pair.getValue());
+        }
+
+        log.info("remaining balances {}", balances);
+
     }
 
-    private List<Order> processPair(TradingPair pair) {
+    private HashMap<String, Balances> getBalances() {
+        var balances = new HashMap<String, Balances>();
+        for (var pair : ebotProps.getPairs()) {
+            if(!balances.containsKey(pair.getAccount())) {
+                balances.put(pair.getAccount(), golosService.getAccBalances(pair.getAccount()));
+            }
+        }
+        return balances;
+    }
+
+    private List<Order> processPair(TradingPair pair, Balances balances) {
         switch (validatePair(pair)) {
             case RelativeOrders:
-                return relativeOrders.proccessPair(pair);
+                return relativeOrders.proccessPair(pair, balances);
         }
 
         return Collections.emptyList();
@@ -64,7 +89,7 @@ public class Ebot {
     @Scheduled(cron = "#{@ebotProperties.cron}")
     public void cronJob() {
         log.info("ebot cron job started");
-        processTradingPairs();
+        processTradingPairs(null);
     }
 
     @PostConstruct
@@ -72,7 +97,7 @@ public class Ebot {
         log.info("process pairs on start");
         cmcService.queryCmcQuotes();
         golosService.retrieveGlsPrice();
-        processTradingPairs();
+        processTradingPairs(null);
     }
 
     public Set<String> getConfiguredAssets() {
@@ -88,11 +113,6 @@ public class Ebot {
         var threshold = ebotProps.getPriceChangeThreshold();
         var change = event.getChange().abs();
         if(change.compareTo(threshold) < 0) return;
-        if(ebotProps.getPairs() != null) {
-            ebotProps.getPairs()
-                .stream()
-                .filter(pair -> event.getBase().equals(pair.getBase()) || event.getBase().equals(pair.getQuote()))
-                .forEach(pair -> this.processPair(pair));
-        }
+        processTradingPairs(event.getBase());
     }
 }
