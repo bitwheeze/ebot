@@ -179,7 +179,7 @@ public class GolosService {
         }
         log.info("cancel orders {}", ops);
         ops.forEach(op -> builder.add(op));
-        var keys = pairList.stream().map(pair -> pair.getKey()).collect(Collectors.toList());
+        var keys = pairList.stream().map(pair -> pair.getKey()).distinct().collect(Collectors.toList());
         var tr = builder.buildAndSign(keys.toArray(new String [keys.size()]));
         netApi.broadcastTransaction(tr).block().orElseThrow();
 
