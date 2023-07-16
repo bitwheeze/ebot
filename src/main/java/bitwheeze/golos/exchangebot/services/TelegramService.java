@@ -18,13 +18,15 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 public class TelegramService extends TelegramLongPollingBot {
 
     private final TelegramProperties props;
+    private final TelegramMessages messages;
     private final Ebot ebot;
 
     @SneakyThrows
-    public TelegramService(TelegramProperties props, TelegramBotsApi botsApi, Ebot ebot) {
+    public TelegramService(TelegramProperties props, TelegramBotsApi botsApi, Ebot ebot, TelegramMessages messages) {
         super(new DefaultBotOptions(), props.getBotToken());
         this.props = props;
         this.ebot = ebot;
+        this.messages = messages;
         botsApi.registerBot(this);
     }
 
@@ -32,7 +34,7 @@ public class TelegramService extends TelegramLongPollingBot {
     public void eventListener(EbotEvent event) {
         log.info("Got an event! {}", event);
         if(filterEvent(event)) {
-            sendMessage(TelegramMessages.translate(event));
+            sendMessage(messages.translate(event));
         }
     }
 

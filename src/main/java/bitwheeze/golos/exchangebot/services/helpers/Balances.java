@@ -4,6 +4,7 @@ import lombok.ToString;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.List;
 
 @ToString
 public class Balances {
@@ -34,5 +35,9 @@ public class Balances {
         var ret = balances.get(asset);
         if(ret == null) return BigDecimal.ZERO;
         return ret;
+    }
+
+    public List<String> getAssetList() {
+        return balances.keySet().stream().sorted().toList();
     }
 }

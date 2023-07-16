@@ -2,6 +2,7 @@ package bitwheeze.golos.exchangebot.components;
 
 import bitwheeze.golos.exchangebot.config.EbotProperties;
 import bitwheeze.golos.exchangebot.config.TradingPair;
+import bitwheeze.golos.exchangebot.events.info.AvailableAmountEvent;
 import bitwheeze.golos.exchangebot.events.info.ChangedPriceEvent;
 import bitwheeze.golos.exchangebot.model.ebot.Order;
 import bitwheeze.golos.exchangebot.services.CmcService;
@@ -10,6 +11,7 @@ import bitwheeze.golos.exchangebot.services.helpers.Balances;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -27,6 +29,7 @@ public class Ebot {
     private final RelativeOrdersStrategy relativeOrders;
     private final GolosService golosService;
     private final CmcService cmcService;
+    private final ApplicationEventPublisher publisher;
 
     public void processTradingPairs(String asset) {
 
@@ -34,6 +37,8 @@ public class Ebot {
         if(ebotProps.getPairs() == null)  return;
 
         var balances = getBalances();
+
+        publisher.publishEvent(new AvailableAmountEvent(balances));
 
         log.info("all balances = {}", balances);
 
