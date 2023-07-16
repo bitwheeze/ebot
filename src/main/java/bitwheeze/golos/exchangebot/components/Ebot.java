@@ -36,6 +36,9 @@ public class Ebot {
 
         if(ebotProps.getPairs() == null)  return;
 
+        golosService.closeAllOpenOrders(ebotProps.getPairs());
+
+
         var balances = getBalances();
 
         publisher.publishEvent(new AvailableAmountEvent(balances));
@@ -50,7 +53,6 @@ public class Ebot {
                 continue;
             }
 
-            golosService.closeAllOpenOrders(pair);
             var orderList = processPair(pair, balances.get(pair.getAccount()));
             if(!orderList.isEmpty()) {
                 orders.put(pair, orderList);

@@ -26,6 +26,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -156,27 +157,30 @@ public class GolosService {
         log.info("test 1 GOLOS in GBG = {}", priceService.convert(BigDecimal.ONE, "GOLOS", "GBG"));
     }
 
-    public void closeAllOpenOrders(TradingPair pair) {
+    public void closeAllOpenOrders(List<TradingPair> pairList) {
         final var builder = transactionFactory.getBuidler();
-        List<Operation> ops = new ArrayList<>();
-        api.getOpenOrders(pair.getAccount(), pair.getBase(), pair.getQuote())
-                .block()
-                .orElseThrow()
-                .stream()
-                .map(openOrder -> {
-                    var cancelOp = new LimitOrderCancel();
-                    cancelOp.setOwner(openOrder.getSeller());
-                    cancelOp.setOrderid(openOrder.getOrderid());
-                    return cancelOp;
-                })
-                .distinct()
-                .forEach(op -> ops.add(op));
-
+        Set<LimitOrderCancel> ops = new HashSet<>();
+        pairList.forEach(pair -> {
+            api.getOpenOrders(pair.getAccount(), pair.getBase(), pair.getQuote())
+                    .block()
+                    .orElseThrow()
+                    .stream()
+                    .map(openOrder -> {
+                        var cancelOp = new LimitOrderCancel();
+                        cancelOp.setOwner(openOrder.getSeller());
+                        cancelOp.setOrderid(openOrder.getOrderid());
+                        return cancelOp;
+                    })
+                    .distinct()
+                    .forEach(op -> ops.add(op));
+        });
         if(ops.isEmpty()) {
             return;
         }
+        log.info("cancel orders {}", ops);
         ops.forEach(op -> builder.add(op));
-        var tr = builder.buildAndSign(new String [] {pair.getKey()});
+        var keys = pairList.stream().map(pair -> pair.getKey()).collect(Collectors.toList());
+        var tr = builder.buildAndSign(keys.toArray(new String [keys.size()]));
         netApi.broadcastTransaction(tr).block().orElseThrow();
 
     }
