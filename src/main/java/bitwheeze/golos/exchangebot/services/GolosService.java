@@ -169,6 +169,7 @@ public class GolosService {
                     cancelOp.setOrderid(openOrder.getOrderid());
                     return cancelOp;
                 })
+                .distinct()
                 .forEach(op -> ops.add(op));
 
         if(ops.isEmpty()) {
