@@ -3,10 +3,10 @@ spring:
     import: optional:file:./golos_gbg.yml
 
 ebot:
-  cron: 0 * * * * *
+  cron: 0 0 * * * *
   exiration: 14
 
 cmc:
-  cron: 0 0 */6 * * *
+  cron: 0 * * * * *
   api-key: b54bcf4d-1bca-4e8e-9a24-22ff2c3d462c
   api-url: https://sandbox-api.coinmarketcap.com/v1/cryptocurrency/listings/latest

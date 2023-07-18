@@ -53,6 +53,7 @@ public class PriceService {
         }
         priceEntity.setPrice(price);
         priceEntity.setLastUpdated(lastUpdated);
+        log.info("save price entity {}", priceEntity );
         priceRepo.save(priceEntity);
     }
 

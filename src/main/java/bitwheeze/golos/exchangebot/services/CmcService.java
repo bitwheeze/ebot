@@ -112,6 +112,7 @@ public class CmcService {
             publisher.publishEvent(new CmcErrorEvent(response.getStatus()));
         }
         for (var data : response.getData().values()) {
+            log.info("process data {}", data);
             processData(data);
         }
 
@@ -119,7 +120,7 @@ public class CmcService {
 
     private void processData(QuoteEntry data) {
         Quote quote = extractQuote(data);
-        log.debug("price for {} ({}) is {}", data.getSymbol(), data.getName(), quote.getPrice());
+        log.info("price for {} ({}) is {}", data.getSymbol(), data.getName(), quote.getPrice());
 
         priceService.updatePrice(mapAsset(data.getSymbol()), quote.getPrice(), LocalDateTime.ofInstant(quote.getLast_updated(), ZoneOffset.UTC));
     }
