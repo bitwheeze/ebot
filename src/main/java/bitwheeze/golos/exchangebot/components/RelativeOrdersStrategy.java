@@ -54,7 +54,7 @@ public class RelativeOrdersStrategy {
 
     private Collection<? extends Order> generateOrders(TradingPair pair, String base, String quote, Balances balances) {
         log.info("");
-        log.info("*******************************************************************");
+        log.info("\n\n*******************************************************************");
         log.info("***** generate orders for sell {} buy {} *****", base, quote);
         log.info("*******************************************************************");
         var list = new ArrayList<Order>();
