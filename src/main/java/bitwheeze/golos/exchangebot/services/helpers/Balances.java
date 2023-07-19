@@ -1,12 +1,14 @@
 package bitwheeze.golos.exchangebot.services.helpers;
 
 import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 
 @ToString
+@Slf4j
 public class Balances {
     private final HashMap<String, BigDecimal> balances = new HashMap<>();
 
@@ -18,8 +20,9 @@ public class Balances {
         }
     }
 
-    public BigDecimal queryAmount(String asset, BigDecimal amount) {
+    public BigDecimal queryAmount(final String asset, final BigDecimal required) {
         var balance = getBalance(asset);
+        var amount = required;
         if(BigDecimal.ZERO.compareTo(balance) >= 0 ) return BigDecimal.ZERO;
 
         var remaining = balance.subtract(amount);
@@ -27,6 +30,7 @@ public class Balances {
             amount = amount.subtract(remaining.abs());
             remaining =  BigDecimal.ZERO;
         }
+        log.info("balance of {}, current={}, required = {}, remaining = {}, available = {}", asset, balance, required, remaining, amount);
         balances.put(asset, remaining);
         return amount;
     }

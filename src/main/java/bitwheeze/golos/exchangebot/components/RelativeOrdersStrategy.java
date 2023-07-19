@@ -77,6 +77,7 @@ public class RelativeOrdersStrategy {
         log.info("Available amount {} {}", base, balances.getBalance(base));
 
         orderAmount = balances.queryAmount(base, orderAmount);
+        log.info("remaining amount {} {}", base, balances.getBalance(base));
 
         var orderPrice = middlePrice.add(spread);
 
@@ -110,7 +111,7 @@ public class RelativeOrdersStrategy {
             orderAmount = balances.queryAmount(base, orderAmount);
 
             log.info("\t\tnew order amount in {} = {}", base, orderAmount);
-            log.info("remeining amount {} {}", base, balances.getBalance(base));
+            log.info("remaining amount {} {}", base, balances.getBalance(base));
         }
 
         return list;
