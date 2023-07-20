@@ -7,10 +7,12 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
+import java.util.List;
+
 @Data
 @ToString
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class NewOrderEvent extends EbotEvent {
-    Order order;
+    List<Order> orderList;
 }

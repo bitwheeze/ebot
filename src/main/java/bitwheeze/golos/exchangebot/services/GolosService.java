@@ -3,12 +3,14 @@ package bitwheeze.golos.exchangebot.services;
 import bitwheeze.golos.exchangebot.config.EbotProperties;
 import bitwheeze.golos.exchangebot.config.PricesProperties;
 import bitwheeze.golos.exchangebot.config.TradingPair;
+import bitwheeze.golos.exchangebot.events.BlockchainErrorEvent;
 import bitwheeze.golos.exchangebot.events.info.FillOrderEvent;
 import bitwheeze.golos.exchangebot.events.info.NewOrderEvent;
 import bitwheeze.golos.exchangebot.model.ebot.Order;
 import bitwheeze.golos.exchangebot.services.helpers.Balances;
 import bitwheeze.golos.goloslib.*;
 import bitwheeze.golos.goloslib.model.Asset;
+import bitwheeze.golos.goloslib.model.exception.BlockchainError;
 import bitwheeze.golos.goloslib.model.op.LimitOrderCancel;
 import bitwheeze.golos.goloslib.model.op.LimitOrderCreate;
 import bitwheeze.golos.goloslib.model.op.Operation;
@@ -51,23 +53,24 @@ public class GolosService {
         List<Operation> ops = new ArrayList<>();
         orderList.stream()
                 .filter(order -> order.getAmountToSell().compareTo(BigDecimal.ZERO) > 0)
-                .peek(order -> publisher.publishEvent(new NewOrderEvent(order)))
                 .map(order -> {
                     var orderCreate = buildLimitOrderCreate(order, pair.getAccount());
                     return orderCreate;
                 })
                 .filter(op -> op != null)
+                .peek( order -> log.info("limit order create {}", order))
                 .forEach(orderCreate -> ops.add(orderCreate));
 
         if(ops.isEmpty()) return;
         ops.forEach(order -> builder.add(order));
         var tr = builder.buildAndSign(new String [] {pair.getKey()});
-        netApi.broadcastTransaction(tr).block().orElseThrow();
         try {
-            //wait till transaction is accepted
-            Thread.sleep(9000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            netApi.broadcastTransaction(tr).block().orElseThrow();
+            log.info("transaction send to blockchain!");
+            publisher.publishEvent(new NewOrderEvent(orderList));
+        } catch (BlockchainError error) {
+            log.error("Exception while sending transaction to blockchain! {}", error.getError());
+            publisher.publishEvent(new BlockchainErrorEvent(error.getError()));
         }
     }
 
@@ -158,6 +161,9 @@ public class GolosService {
     }
 
     public void closeAllOpenOrders(List<TradingPair> pairList) {
+
+
+
         final var builder = transactionFactory.getBuidler();
         Set<LimitOrderCancel> ops = new HashSet<>();
         pairList.forEach(pair -> {
@@ -165,6 +171,7 @@ public class GolosService {
                     .block()
                     .orElseThrow()
                     .stream()
+                    .peek(openOrder -> {log.info("open order id={}, expiration={}", openOrder.getId(), openOrder.getExpiration());})
                     .map(openOrder -> {
                         var cancelOp = new LimitOrderCancel();
                         cancelOp.setOwner(openOrder.getSeller());
@@ -181,7 +188,13 @@ public class GolosService {
         ops.forEach(op -> builder.add(op));
         var keys = pairList.stream().map(pair -> pair.getKey()).distinct().collect(Collectors.toList());
         var tr = builder.buildAndSign(keys.toArray(new String [keys.size()]));
-        netApi.broadcastTransaction(tr).block().orElseThrow();
+        try {
+            netApi.broadcastTransaction(tr).block().orElseThrow();
+            log.info("transaction send to blockchain!");
+        } catch (BlockchainError error) {
+            log.error("Exception while sending transaction to blockchain! {}", error.getError());
+            publisher.publishEvent(new BlockchainErrorEvent(error.getError()));
+        }
 
     }
 

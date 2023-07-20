@@ -1,5 +1,6 @@
 package bitwheeze.golos.exchangebot.services;
 
+import bitwheeze.golos.exchangebot.events.BlockchainErrorEvent;
 import bitwheeze.golos.exchangebot.events.EbotEvent;
 import bitwheeze.golos.exchangebot.events.info.AvailableAmountEvent;
 import bitwheeze.golos.exchangebot.events.info.ChangedPriceEvent;
@@ -28,9 +29,16 @@ public class TelegramMessages {
             return transalte(changedPriceEvent);
         } else if (event instanceof AvailableAmountEvent amountEvent) {
             return translate(amountEvent);
+        } else if (event instanceof BlockchainErrorEvent blockEror) {
+            return translate(blockEror);
         }
 
         return event.toString();
+    }
+
+    private String translate(BlockchainErrorEvent event) {
+        var error = event.getError();
+        return "Blockchain error! ```" + event.getError().getMessage() + "```";
     }
 
     private String translate(AvailableAmountEvent event) {
@@ -42,7 +50,9 @@ public class TelegramMessages {
             var accBalances = balances.get(account);
             var sum = BigDecimal.ZERO;
             for(String asset : accBalances.getAssetList()) {
-                msg.append(String.format("%16s %-14s\n", accBalances.getBalance(asset).setScale(5, RoundingMode.HALF_DOWN), asset));
+                var amount = accBalances.getBalance(asset);
+                if(BigDecimal.ZERO.compareTo(amount) >= 0) continue;
+                msg.append(String.format("%16s %-14s\n", amount.setScale(5, RoundingMode.HALF_DOWN), asset));
                 var usd = priceService.convert(accBalances.getBalance(asset), asset, "USD");
                 if(usd.isPresent()) {
                     sum = sum.add(usd.get());
@@ -71,14 +81,22 @@ public class TelegramMessages {
     }
 
     private static String transalte(NewOrderEvent event) {
-        var order = event.getOrder();
-        var message = String.format("New order, sell %s %s, receive %s %s, price=%s"
-                , order.getAmountToSell().setScale(6, RoundingMode.HALF_DOWN)
-                , order.getAssetToSell()
-                , order.getMinToReceive().setScale(6, RoundingMode.HALF_DOWN)
-                , order.getAssetToReceive()
-                , order.getMinToReceive().divide(order.getAmountToSell(), RoundingMode.HALF_DOWN).setScale(6, RoundingMode.HALF_DOWN)
-        );
-        return message;
+        var message = new StringBuilder("```\nNew order created\n-------------------------------\n");
+
+        for(var order : event.getOrderList()) {
+
+            var orderMessage  = String.format("sell %16s %-14s\nrecv %16s %-14s\nprice%16s %-14s\n"
+                    , order.getAmountToSell().setScale(5, RoundingMode.HALF_DOWN)
+                    , order.getAssetToSell()
+                    , order.getMinToReceive().setScale(5, RoundingMode.HALF_DOWN)
+                    , order.getAssetToReceive()
+                    , order.getMinToReceive().divide(order.getAmountToSell(), RoundingMode.HALF_DOWN).setScale(5, RoundingMode.HALF_DOWN)
+                    , order.getAssetToReceive()
+            );
+
+            message.append(orderMessage).append("\n");
+        }
+        message.append("```");
+        return message.toString();
     }
 }

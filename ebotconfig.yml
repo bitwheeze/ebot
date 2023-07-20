@@ -3,7 +3,7 @@ spring:
     import: optional:file:./golos_gbg.yml
 
 ebot:
-  cron: 0 0 * * * *
+  cron: 0 * * * * *
   exiration: 14
 
 cmc:
