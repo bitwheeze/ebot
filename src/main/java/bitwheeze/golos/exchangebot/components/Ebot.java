@@ -36,8 +36,7 @@ public class Ebot {
 
         if(ebotProps.getPairs() == null)  return;
 
-        golosService.closeAllOpenOrders(ebotProps.getPairs());
-
+        golosService.closeAllOpenOrders(ebotProps.getPairs(), asset);
 
         var balances = getBalances();
 

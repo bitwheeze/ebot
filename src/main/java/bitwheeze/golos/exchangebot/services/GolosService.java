@@ -160,13 +160,15 @@ public class GolosService {
         log.info("test 1 GOLOS in GBG = {}", priceService.convert(BigDecimal.ONE, "GOLOS", "GBG"));
     }
 
-    public void closeAllOpenOrders(List<TradingPair> pairList) {
+    public void closeAllOpenOrders(List<TradingPair> pairList, String asset) {
 
 
 
         final var builder = transactionFactory.getBuidler();
         Set<LimitOrderCancel> ops = new HashSet<>();
-        pairList.forEach(pair -> {
+        pairList.stream()
+                .filter(p -> asset != null?p.getBase().equals(asset) || p.getQuote().equals(asset):true)
+                .forEach(pair -> {
             api.getOpenOrders(pair.getAccount(), pair.getBase(), pair.getQuote())
                     .block()
                     .orElseThrow()
