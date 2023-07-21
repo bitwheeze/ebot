@@ -12,7 +12,6 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -113,8 +112,7 @@ public class Ebot {
                 .flatMap( pair -> Stream.of(pair.getQuote(), pair.getBase()))
                 .collect(Collectors.toSet());
     }
-
-    @EventListener
+    //@EventListener
     public void onEvent(ChangedPriceEvent event) {
         var threshold = ebotProps.getPriceChangeThreshold();
         var change = event.getChange().abs();
